@@ -102,6 +102,8 @@ impl Element {
     &self,
     context: &XsdContext,
     prefix: &Option<String>,
+    multiple: bool,
+    optional: bool,
   ) -> TokenStream {
     let refers = self.get_refers();
     if self.name.is_empty() && refers.is_none() {
@@ -150,6 +152,23 @@ impl Element {
         self.name, self.kind,
       );
     };
+
+    let rust_type = if multiple {
+      quote!(Vec<#rust_type>)
+    } else {
+      rust_type
+    };
+
+    let rust_type = if optional || (!multiple && self.min_occurences == Some(0)) {
+      quote!(Option<#rust_type>)
+    } else {
+      rust_type
+    };
+
+    let prefix_attribute = prefix
+      .as_ref()
+      .map(|prefix| quote!(, prefix=#prefix))
+      .unwrap_or_default();
 
     let module = (!context.is_in_sub_module()
       && !self
