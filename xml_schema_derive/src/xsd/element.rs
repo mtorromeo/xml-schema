@@ -102,7 +102,6 @@ impl Element {
     &self,
     context: &XsdContext,
     prefix: &Option<String>,
-    multiple: bool,
     optional: bool,
   ) -> TokenStream {
     let refers = self.get_refers();
