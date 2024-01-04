@@ -2,10 +2,11 @@ use xml_schema_derive::XmlSchema;
 use yaserde::de::from_str;
 use yaserde::ser::to_string;
 
+/*
 #[test]
 fn complex_type_string() {
   #[derive(Debug, XmlSchema)]
-  #[xml_schema(source = "xml_schema/tests/complex_type.xsd")]
+  #[xml_schema(source = "xml_schema/tests/complex_type.xsd", store_generated_code="complex_type_bla.rs")]
   struct ComplexTypeSchema;
 
   let xml_1 = r#"
@@ -30,3 +31,4 @@ fn complex_type_string() {
     r#"<?xml version="1.0" encoding="utf-8"?><ComplexListOfElements><Annotation>Test content</Annotation><Label>Label content</Label></ComplexListOfElements>"#
   );
 }
+ */

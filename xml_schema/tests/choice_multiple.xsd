@@ -1,9 +1,9 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-    <xs:element name="person">
-        <xs:complexType name="parents">
+    <xs:element name="gift">
+        <xs:complexType name="object">
             <xs:choice minOccurs="0" maxOccurs="unbounded">
-                <xs:element name="firstname" type="xs:string"/>
-                <xs:element name="lastname" type="xs:string"/>
+                <xs:element name="priceHistory" type="xs:int"/>
+                <xs:element name="sentimentalValueHistory" type="xs:int"/>
             </xs:choice>
         </xs:complexType>
     </xs:element>

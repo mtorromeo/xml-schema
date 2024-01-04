@@ -1,4 +1,4 @@
-use crate::xsd::{choice::Choice, element::Element, Implementation, XsdContext};
+use crate::xsd::{choice::Choice, element::{Element, FieldParent}, Implementation, XsdContext};
 use log::info;
 use proc_macro2::TokenStream;
 
@@ -22,13 +22,13 @@ impl Implementation for Sequence {
     let elements: TokenStream = self
       .elements
       .iter()
-      .map(|element| element.get_field_implementation(context, prefix, false, false))
+      .map(|element| element.get_field_implementation(context, prefix, &FieldParent::Struct, false))
       .collect();
 
     let choices: TokenStream = self
       .choices
       .iter()
-      .map(|choice| choice.get_field_implementation(context, prefix))
+      .map(|choice| choice.get_field_implementation(context, prefix, &FieldParent::Struct))
       .collect();
 
     quote!(
@@ -61,13 +61,13 @@ impl Sequence {
     let elements: TokenStream = self
       .elements
       .iter()
-      .map(|element| element.get_field_implementation(context, prefix, false, false))
+      .map(|element| element.get_field_implementation(context, prefix, &FieldParent::Struct, false))
       .collect();
 
     let choices: TokenStream = self
       .choices
       .iter()
-      .map(|choice| choice.get_field_implementation(context, prefix))
+      .map(|choice| choice.get_field_implementation(context, prefix, &FieldParent::Struct))
       .collect();
 
     quote!(

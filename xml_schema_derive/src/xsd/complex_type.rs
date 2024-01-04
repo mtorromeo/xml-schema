@@ -1,6 +1,6 @@
 use crate::xsd::{
   annotation::Annotation, attribute::Attribute, choice::Choice, complex_content::ComplexContent,
-  sequence::Sequence, simple_content::SimpleContent, Implementation, XsdContext,
+  sequence::Sequence, simple_content::SimpleContent, Implementation, XsdContext, element::FieldParent,
 };
 use heck::ToUpperCamelCase;
 use proc_macro2::{Span, TokenStream};
@@ -36,7 +36,7 @@ impl Implementation for ComplexType {
     prefix: &Option<String>,
     context: &XsdContext,
   ) -> TokenStream {
-    let struct_name = Ident::new(
+    let type_name = Ident::new(
       &self.name.replace('.', "_").to_upper_camel_case(),
       Span::call_site(),
     );
@@ -84,33 +84,40 @@ impl Implementation for ComplexType {
       .map(|annotation| annotation.implement(namespace_definition, prefix, context))
       .unwrap_or_default();
 
-    let choice_sub_types = self
-      .choice
-      .as_ref()
-      .map(|choice| choice.get_sub_types_implementation(context, &namespace_definition, prefix))
-      .unwrap_or_else(TokenStream::new);
+    let implementation = if let Some(choice) = &self.choice {
+      let choice_sub_types = choice.get_sub_types_implementation(context, &namespace_definition, prefix);
+      let choice_fields = choice.get_field_implementation(context, prefix, &FieldParent::Enum);
 
-    let choice_field = self
-      .choice
-      .as_ref()
-      .map(|choice| choice.get_field_implementation(context, prefix))
-      .unwrap_or_else(TokenStream::new);
+      // The __undefined__ option is needed in order to allow the
+      // implementation of default on complex type structs
+      quote!(
+        pub enum #type_name {
+          #choice_fields
+          #[default]
+          __undefined__
+        }
+
+        #choice_sub_types
+      )
+    } else {
+      quote!(
+        pub struct #type_name {
+          #sequence
+          #simple_content
+          #complex_content
+          #attributes
+        }
+        
+        #sequence_sub_types
+      )
+    };
 
     quote! {
       #docs
 
       #[derive(Clone, Debug, Default, PartialEq, yaserde_derive::YaDeserialize, yaserde_derive::YaSerialize)]
       #namespace_definition
-      pub struct #struct_name {
-        #sequence
-        #simple_content
-        #complex_content
-        #choice_field
-        #attributes
-      }
-
-      #sequence_sub_types
-      #choice_sub_types
+      #implementation
     }
   }
 }
@@ -137,7 +144,7 @@ impl ComplexType {
       self
         .choice
         .as_ref()
-        .map(|choice| choice.get_field_implementation(context, prefix))
+        .map(|choice| choice.get_field_implementation(context, prefix, &FieldParent::Struct))
         .unwrap_or_else(TokenStream::new)
     } else {
       TokenStream::new()
