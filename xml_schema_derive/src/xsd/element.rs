@@ -102,6 +102,7 @@ impl Element {
     &self,
     context: &XsdContext,
     prefix: &Option<String>,
+    inheritable_multiple: bool,
     optional: bool,
   ) -> TokenStream {
     let refers = self.get_refers();
@@ -109,8 +110,9 @@ impl Element {
       return quote!();
     }
 
-    let multiple = self.max_occurences.is_some()
-      && self.max_occurences != Some(MaxOccurences::Number { value: 1 });
+    let multiple = inheritable_multiple
+      || (self.max_occurences.is_some()
+        && self.max_occurences != Some(MaxOccurences::Number { value: 1 }));
 
     let name = if self.name.to_lowercase() == "type" {
       "kind".to_string()
