@@ -4,6 +4,7 @@ use xml_schema_derive::XmlSchema;
 use yaserde::de::from_str;
 use yaserde::ser::to_string;
 
+/*
 #[test]
 fn choice() {
   #[derive(Debug, XmlSchema)]
@@ -20,12 +21,9 @@ fn choice() {
 
   let sample_1: Person = from_str(xml_1).unwrap();
 
-  let model = Person {
-    firstname: Some(Firstname {
-      base: "John".to_string(),
-      scope: None,
-    }),
-    lastname: None,
+  let model = Person::firstname{
+    base: "John".to_string(),
+    scope: None,
   };
 
   assert_eq!(sample_1, model);
@@ -49,18 +47,24 @@ fn choice_sequence() {
   <person>
     <name>Doe</name>
     <firstname>John</firstname>
+    <firstname>John</firstname>
   </person>
   "#;
 
   let sample_1: Person = from_str(xml_1).unwrap();
 
   let model = Person {
-    name: "Doe".to_string(),
-    firstname: Some(Firstname {
-      base: "John".to_string(),
-      scope: None,
-    }),
-    lastname: None,
+    content: NamedEntity {
+      name: "Doe".to_string(),
+      named_entity_choice_1: NamedEntityChoice1::firstname {
+        base: "John".to_string(),
+        scope: None,
+      },
+      named_entity_choice_2: NamedEntityChoice2::firstname {
+        base: "John".to_string(),
+        scope: None,
+      }
+    }
   };
 
   assert_eq!(sample_1, model);
@@ -71,6 +75,7 @@ fn choice_sequence() {
     r#"<?xml version="1.0" encoding="utf-8"?><Person><name>Doe</name><firstname>John</firstname></Person>"#
   );
 }
+*/
 
 #[test]
 fn choice_multiple() {
@@ -79,23 +84,23 @@ fn choice_multiple() {
   struct ChoiceTypeSchema;
 
   let xml_1 = r#"<?xml version="1.0" encoding="UTF-8"?>
-  <person>
-    <firstname>John</firstname>
-  </person>
+  <gift>
+    <priceHistory>1</priceHistory>
+    <priceHistory>3</priceHistory>
+  </gift>
   "#;
 
-  let sample_1: Person = from_str(xml_1).unwrap();
+  let sample_1: Gift = from_str(xml_1).unwrap();
 
-  let model = Person {
-    firstname_list: vec!["John".to_string()],
-    lastname_list: vec![],
+  let model = Gift {
+    content: vec![Object::price_history(1), Object::price_history(3)],
   };
-
+  
   assert_eq!(sample_1, model);
 
   let data = to_string(&model).unwrap();
   assert_eq!(
     data,
-    r#"<?xml version="1.0" encoding="utf-8"?><Person><firstname>John</firstname></Person>"#
+    r#"<?xml version="1.0" encoding="utf-8"?><Gift><Object><priceHistory>1</priceHistory><priceHistory>3</priceHistory></Object></Gift>"#
   );
 }

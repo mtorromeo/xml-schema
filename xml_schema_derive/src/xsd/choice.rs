@@ -10,6 +10,8 @@ use crate::xsd::{
 use log::info;
 use proc_macro2::TokenStream;
 
+use super::element::FieldParent;
+
 #[derive(Clone, Default, Debug, PartialEq, YaDeserialize)]
 #[yaserde(
   rename = "choice"
@@ -65,25 +67,28 @@ impl Choice {
       .collect()
   }
 
+  pub fn is_multiple(&self) -> bool {
+    matches!(self.min_occurences, Some(min_occurences) if min_occurences > 1)
+    || matches!(self.max_occurences, Some(MaxOccurences::Unbounded))
+    || matches!(self.max_occurences, Some(MaxOccurences::Number{value}) if value > 1)
+  }
+
   pub fn get_field_implementation(
     &self,
     context: &XsdContext,
     prefix: &Option<String>,
+    field_parent: &FieldParent,
   ) -> TokenStream {
     info!("Generate choice elements");
 
-    let multiple = matches!(self.min_occurences, Some(min_occurences) if min_occurences > 1)
-      || matches!(self.max_occurences, Some(MaxOccurences::Unbounded))
-      || matches!(self.max_occurences, Some(MaxOccurences::Number{value}) if value > 1);
-
     // Element fields are by default declared as Option type due to the nature of the choice element.
     // Since a vector can also be empty, use Vec<_>, rather than Option<Vec<_>>.
-    let optional = !multiple;
+    let can_be_optional = !self.is_multiple();
 
     self
       .element
       .iter()
-      .map(|element| element.get_field_implementation(context, prefix, multiple, optional))
+      .map(|element| element.get_field_implementation(context, prefix, field_parent, can_be_optional))
       .collect()
   }
 }

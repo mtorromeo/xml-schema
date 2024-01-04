@@ -26,6 +26,11 @@ pub struct Element {
   pub annotation: Option<Annotation>,
 }
 
+pub enum FieldParent {
+  Struct,
+  Enum,
+}
+
 impl Implementation for Element {
   fn implement(
     &self,
@@ -38,7 +43,7 @@ impl Implementation for Element {
       Span::call_site(),
     );
 
-    let (fields, extra_structs) = if let Some(kind) = &self.kind {
+    let (field, extra_structs) = if let Some(kind) = &self.kind {
       let subtype_mode = if RustTypesMapping::is_xs_string(context, kind) {
         quote!(text)
       } else {
@@ -79,13 +84,38 @@ impl Implementation for Element {
         ),
       }
     } else {
-      let fields_definition = self
+      let field = self
         .complex_type
         .iter()
-        .map(|complex_type| complex_type.get_field_implementation(context, prefix))
+        .map(|complex_type| {
+            let rust_type = RustTypesMapping::get(context, &complex_type.name);
+
+            let multiple = complex_type.choice.as_ref().map(|choice| choice.is_multiple()).unwrap_or(false);
+
+            let rust_type = if multiple {
+              quote!(Vec<#rust_type>)
+            } else {
+              rust_type
+            };        
+
+            quote!(
+              #[yaserde()]
+              pub content: #rust_type
+            )
+          }
+        )
         .collect();
 
-      (fields_definition, quote!())
+      let structs = self
+      .complex_type
+      .iter()
+      .map(|complex_type| complex_type.implement(namespace_definition, prefix, context))
+      .collect();
+
+      (
+        field,
+        structs
+      )
     };
 
     let docs = self
@@ -99,7 +129,7 @@ impl Implementation for Element {
       #[derive(Clone, Debug, Default, PartialEq, yaserde_derive::YaDeserialize, yaserde_derive::YaSerialize)]
       #namespace_definition
       pub struct #struct_name {
-        #fields
+        #field
       }
 
       #extra_structs
@@ -125,17 +155,16 @@ impl Element {
     &self,
     context: &XsdContext,
     prefix: &Option<String>,
-    inheritable_multiple: bool,
-    optional: bool,
+    field_parent: &FieldParent,
+    can_be_optional: bool,
   ) -> TokenStream {
     let refers = self.get_refers();
     if self.name.is_empty() && refers.is_none() {
       return quote!();
     }
 
-    let multiple = inheritable_multiple
-      || (self.max_occurences.is_some()
-        && self.max_occurences != Some(MaxOccurences::Number { value: 1 }));
+    let multiple = self.max_occurences.is_some()
+        && self.max_occurences != Some(MaxOccurences::Number { value: 1 });
 
     let name = if self.name.to_lowercase() == "type" {
       "kind".to_string()
@@ -174,12 +203,6 @@ impl Element {
       RustTypesMapping::get(context, "string")
     };
 
-    let rust_type = if multiple {
-      quote!(Vec<#rust_type>)
-    } else {
-      rust_type
-    };
-
     let module = (!context.is_in_sub_module()
       && !self
         .kind
@@ -194,8 +217,16 @@ impl Element {
 
     let rust_type = quote!(#module#rust_type);
 
-    let rust_type = if optional || (!multiple && self.min_occurences == Some(0)) {
-      quote!(Option<#rust_type>)
+    let rust_type = if multiple {
+      quote!(Vec<#rust_type>)
+    } else {
+      rust_type
+    };
+
+    let rust_type = if (can_be_optional && self.min_occurences == Some(0)) || (!multiple && self.min_occurences == Some(0)) {
+      quote!(
+        Option<#rust_type>
+      )
     } else {
       rust_type
     };
@@ -205,10 +236,22 @@ impl Element {
       .map(|prefix| quote!(, prefix=#prefix))
       .unwrap_or_default();
 
-    quote! {
-      #[yaserde(rename=#yaserde_rename #prefix_attribute)]
-      pub #attribute_name: #rust_type,
+    match field_parent {
+      FieldParent::Struct => {
+        quote! (
+          #[yaserde(rename=#yaserde_rename #prefix_attribute)]
+          pub #attribute_name: #rust_type,
+        )
+      },
+      FieldParent::Enum => { 
+        quote! (
+          #[yaserde(rename=#yaserde_rename #prefix_attribute)]
+          #attribute_name(#rust_type),
+        )
+      },
     }
+
+   
   }
 
   fn get_refers(&self) -> Option<&str> {
