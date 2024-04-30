@@ -148,10 +148,7 @@ impl Element {
     } else if let Some(refers) = refers {
       RustTypesMapping::get(context, refers)
     } else {
-      panic!(
-        "[Element] {:?} unimplemented type: {:?}",
-        self.name, self.kind,
-      );
+      RustTypesMapping::get(context, "string")
     };
 
     let rust_type = if multiple {
