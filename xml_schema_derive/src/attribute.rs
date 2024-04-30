@@ -35,14 +35,16 @@ impl XmlSchemaAttributes {
       return BTreeMap::default();
     }
 
-    match module_namespace_mappings
-      .split(": ")
-      .collect::<Vec<_>>()
-      .as_slice()
-    {
-      [first] => BTreeMap::from([("".to_owned(), first.to_string())]),
-      [first, second] => BTreeMap::from([(first.to_string(), second.to_string())]),
-      _ => BTreeMap::default(),
-    }
+    module_namespace_mappings
+      .split(", ")
+      .map(
+        |mapping| match mapping.splitn(2, ": ").collect::<Vec<_>>().as_slice() {
+          [first] => Some(("".to_owned(), first.to_string())),
+          [first, second] => Some((first.to_string(), second.to_string())),
+          _ => None,
+        },
+      )
+      .flatten()
+      .collect()
   }
 }
