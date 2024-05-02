@@ -3,8 +3,7 @@ use crate::xsd::{
   rust_types_mapping::RustTypesMapping, simple_type::SimpleType, Implementation, XsdContext,
 };
 use heck::{ToSnakeCase, ToUpperCamelCase};
-use proc_macro2::{Span, TokenStream};
-use syn::Ident;
+use proc_macro2::{Ident, Span, TokenStream, TokenTree};
 
 #[derive(Clone, Default, Debug, PartialEq, YaDeserialize)]
 #[yaserde(prefix = "xs", namespace = "xs: http://www.w3.org/2001/XMLSchema")]
@@ -48,13 +47,37 @@ impl Implementation for Element {
 
       let extern_type = RustTypesMapping::get(context, kind);
 
-      (
-        quote!(
-          #[yaserde(#subtype_mode)]
-          pub content: xml_schema_types::#extern_type,
+      match extern_type.clone().into_iter().next() {
+        Some(TokenTree::Ident(i)) => match format!("{}", i).as_str() {
+          "crate" => (
+            quote!(
+              #[yaserde(#subtype_mode)]
+              pub content: #extern_type,
+            ),
+            quote!(),
+          ),
+          "u16" => (
+            quote!(
+              pub content: #extern_type,
+            ),
+            quote!(),
+          ),
+          _ => (
+            quote!(
+              #[yaserde(#subtype_mode)]
+              pub content: xml_schema_types::#extern_type,
+            ),
+            quote!(),
+          ),
+        },
+        _ => (
+          quote!(
+            #[yaserde(#subtype_mode)]
+            pub content: xml_schema_types::#extern_type,
+          ),
+          quote!(),
         ),
-        quote!(),
-      )
+      }
     } else {
       let fields_definition = self
         .complex_type
