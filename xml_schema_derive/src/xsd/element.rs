@@ -96,7 +96,7 @@ impl Implementation for Element {
               quote!(Vec<#rust_type>)
             } else {
               rust_type
-            };        
+            };
 
             quote!(
               #[yaserde()]
@@ -178,12 +178,6 @@ impl Element {
 
     log::info!("Generate element {:?}", name);
 
-    let name = if multiple {
-      format!("{name}_list")
-    } else {
-      name
-    };
-
     let attribute_name = Ident::new(&name, Span::call_site());
     let yaserde_rename = if !self.name.is_empty() {
       &self.name
@@ -243,7 +237,7 @@ impl Element {
           pub #attribute_name: #rust_type,
         )
       },
-      FieldParent::Enum => { 
+      FieldParent::Enum => {
         quote! (
           #[yaserde(rename=#yaserde_rename #prefix_attribute)]
           #attribute_name(#rust_type),
@@ -251,7 +245,7 @@ impl Element {
       },
     }
 
-   
+
   }
 
   fn get_refers(&self) -> Option<&str> {
