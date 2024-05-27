@@ -63,9 +63,11 @@ impl Xsd {
     vis: Visibility,
     content: &str,
     module_namespace_mappings: &BTreeMap<String, String>,
+    string_based_extensions: &Vec<String>,
   ) -> Result<Self, String> {
     let context = XsdContext::new(content)?;
     let context = context.with_module_namespace_mappings(module_namespace_mappings);
+    let context = context.with_string_based_extensions(string_based_extensions);
     let schema: schema::Schema = from_str(content)?;
 
     Ok(Xsd {
@@ -81,6 +83,7 @@ impl Xsd {
     vis: Visibility,
     source: &str,
     module_namespace_mappings: &BTreeMap<String, String>,
+    string_based_extensions: &Vec<String>,
   ) -> Result<Self, String> {
     let content = if source.starts_with("http://") || source.starts_with("https://") {
       log::info!("Load HTTP schema {}", source);
@@ -102,7 +105,7 @@ impl Xsd {
       content
     };
 
-    Xsd::new(name, vis, &content, module_namespace_mappings)
+    Xsd::new(name, vis, &content, module_namespace_mappings, string_based_extensions)
   }
 
   pub fn implement(&self, target_prefix: &Option<String>) -> TokenStream {
