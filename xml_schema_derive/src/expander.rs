@@ -13,6 +13,7 @@ pub fn expand_derive(attributes: &XmlSchemaAttributes) -> Result<TokenStream, St
     vis,
     &attributes.source,
     &attributes.module_namespace_mappings(),
+    &attributes.string_based_extensions(),
   )?;
   let generated = xsd.implement(&attributes.target_prefix);
 

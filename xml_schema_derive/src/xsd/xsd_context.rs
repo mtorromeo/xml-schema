@@ -6,6 +6,7 @@ use xml::reader::{EventReader, XmlEvent};
 #[derive(Clone, Debug)]
 pub struct XsdContext {
   module_namespace_mappings: BTreeMap<String, String>,
+  string_based_extensions: Vec<String>,
   pub namespace: Namespace,
   xml_schema_prefix: Option<String>,
   is_in_sub_module: bool,
@@ -25,10 +26,12 @@ impl XsdContext {
             && name.local_name == "schema"
           {
             let module_namespace_mappings = BTreeMap::new();
+            let string_based_extensions = Vec::new();
             let xml_schema_prefix = name.prefix;
 
             return Ok(XsdContext {
               module_namespace_mappings,
+              string_based_extensions,
               namespace,
               xml_schema_prefix,
               is_in_sub_module: false,
@@ -51,6 +54,14 @@ impl XsdContext {
     self
   }
 
+  pub fn with_string_based_extensions(
+    mut self,
+    string_based_extensions: &[String],
+  ) -> Self {
+    string_based_extensions.clone_into(&mut self.string_based_extensions);
+    self
+  }
+
   pub fn has_xml_schema_prefix(&self) -> bool {
     self.xml_schema_prefix.is_some()
   }
@@ -70,6 +81,10 @@ impl XsdContext {
           .map(|module| module.to_owned())
       })
       .unwrap_or_else(|| None)
+  }
+
+  pub fn extension_is_string(&self, ext: &str) -> bool {
+    self.string_based_extensions.iter().find(|e| e.as_str() == ext).is_some()
   }
 
   pub fn set_is_in_sub_module(&mut self, is_in_sub_module: bool) {

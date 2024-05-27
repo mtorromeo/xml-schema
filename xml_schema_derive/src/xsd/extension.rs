@@ -30,7 +30,7 @@ impl Implementation for Extension {
     prefix: &Option<String>,
     context: &XsdContext,
   ) -> TokenStream {
-    let rust_type = RustTypesMapping::get(context, &self.base);
+    let mut rust_type = RustTypesMapping::get(context, &self.base);
 
     let attributes: TokenStream = self
       .attributes
@@ -38,9 +38,17 @@ impl Implementation for Extension {
       .map(|attribute| attribute.implement(namespace_definition, prefix, context))
       .collect();
 
-    let inner_attribute = if format!("{rust_type}") == "String" {
+    if context.extension_is_string(self.base.as_str()) {
+      rust_type = quote!(String);
+    // } else if matches!(self.base.as_str(), "normalizedString") && !self.attributes.is_empty() {
+      // } else if matches!(self.base.as_str(), "normalizedString") && matches!(self.attributes.first().map(|a| a.kind.as_ref().map(|k| k.as_ref())), Some(Some("domain:statusValueType"))) {
+      // rust_type = quote!(Option<String>);
+    }
+
+    let inner_attribute = if matches!(format!("{rust_type}").as_str(), "String" | "Option < String >") {
       quote!(#[yaserde(text)])
     } else {
+      // quote!(#[yaserde(flatten)])
       TokenStream::new()
     };
 
@@ -68,13 +76,14 @@ impl Extension {
 
         quote!(
           ,
-          #[serde(flatten)]
+          #[yaserde(flatten)]
           pub extension : #group_type
         )
       })
       .unwrap_or_default();
 
     quote!(
+      #[yaserde(flatten)]
       pub base : #rust_type
       #group_content
     )

@@ -11,6 +11,7 @@ pub struct XmlSchemaAttributes {
   pub source: String,
   pub store_generated_code: Option<String>,
   pub target_prefix: Option<String>,
+  pub string_based_extensions: Option<String>,
 }
 
 impl XmlSchemaAttributes {
@@ -37,14 +38,30 @@ impl XmlSchemaAttributes {
 
     module_namespace_mappings
       .split(", ")
-      .map(
-        |mapping| match mapping.splitn(2, ": ").collect::<Vec<_>>().as_slice() {
+      .filter_map(|mapping| match mapping.splitn(2, ": ").collect::<Vec<_>>().as_slice() {
           [first] => Some(("".to_owned(), first.to_string())),
           [first, second] => Some((first.to_string(), second.to_string())),
           _ => None,
-        },
-      )
-      .flatten()
+        })
+      .collect()
+  }
+
+  pub fn string_based_extensions(&self) -> Vec<String> {
+    let string_based_extensions = self.string_based_extensions.clone().unwrap_or_default();
+    if string_based_extensions.is_empty() {
+      return Vec::default();
+    }
+
+    string_based_extensions
+      .split(',')
+      .filter_map(|ext| {
+        let ext = ext.trim().to_string();
+        if ext.is_empty() {
+          None
+        } else {
+          Some(ext)
+        }
+      })
       .collect()
   }
 }
