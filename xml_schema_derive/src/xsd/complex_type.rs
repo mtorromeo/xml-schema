@@ -94,6 +94,7 @@ impl Implementation for ComplexType {
         pub enum #type_name {
           #choice_fields
           #[default]
+          #[allow(non_camel_case_types)]
           __undefined__
         }
 
@@ -107,7 +108,7 @@ impl Implementation for ComplexType {
           #complex_content
           #attributes
         }
-        
+
         #sequence_sub_types
       )
     };

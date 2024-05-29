@@ -169,7 +169,10 @@ impl Element {
     let name = if self.name.to_lowercase() == "type" {
       "kind".to_string()
     } else if !self.name.is_empty() {
-      self.name.to_snake_case()
+      match field_parent {
+        FieldParent::Struct => self.name.to_snake_case(),
+        FieldParent::Enum => self.name.to_upper_camel_case(),
+      }
     } else {
       refers
         .expect("[Element] refers should be defined")
